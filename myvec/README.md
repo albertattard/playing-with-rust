@@ -1,4 +1,4 @@
-## Implementing Rust's Vec From Scratch
+# Implementing Rust's Vec From Scratch
 
 **Do not use this code for production!!  This is a simple exercise using pointers and memory.**
 
