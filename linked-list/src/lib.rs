@@ -1,16 +1,16 @@
-use std::mem::replace;
+// use std::mem::replace;
 
-struct LinkedList<T> {
+pub struct LinkedList<T> {
     head: Link<T>,
 }
 
 impl<T> LinkedList<T> {
-    fn empty() -> Self {
+    pub fn empty() -> Self {
         // LinkedList { head: None }
         Self { head: None }
     }
 
-    fn push(&mut self, element: T) {
+    pub fn push(&mut self, element: T) {
         // let current_head = replace(&mut self.head, None);
         let current_head = self.head.take();
 
@@ -21,7 +21,7 @@ impl<T> LinkedList<T> {
         self.head = Some(Box::new(next));
     }
 
-    fn pop(&mut self) -> Option<T> {
+    pub fn pop(&mut self) -> Option<T> {
         // let current_head = replace(&mut self.head, None);
         let current_head = self.head.take();
 
@@ -38,7 +38,7 @@ impl<T> LinkedList<T> {
         })
     }
 
-    fn peek(&self) -> Option<&T> {
+    pub fn peek(&self) -> Option<&T> {
         // match &self.head {
         //     None => None,
         //     Some(n) => Some(&n.element)
