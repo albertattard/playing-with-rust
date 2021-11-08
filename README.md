@@ -43,3 +43,13 @@ in the standard library or implemented inefficiently and not production ready.
 
 - Macros
     - [Crust of Rust: Declarative Macros](vec-mac/README.md)
+
+- Pointers
+    - [Implementing Rust's Vec From Scratch](myvec/README.md)
+
+- Small Applications
+    - [Key Value Store](kvstore/README.md)
+    - [A Singly Linked List in Rust](linked-list/README.md)
+
+- Traits
+    - [Dynamic vs Static Dispatch in Rust](traits/README.md)
