@@ -15,19 +15,51 @@ macro_rules! my_vec {
     ($($element:expr),* $(,)?) => {{
         // This is only needed is we allow empty vec
         #[allow(unused_mut)]
-        let mut v = Vec::new();
+        // We can make use of a few tricks to create the Vector with the right capacity
+        // let mut v = Vec::new();
+        let mut v = Vec::with_capacity($crate::count![@COUNT; $($element),*]);
         $(v.push($element);)*
         v
     }};
 
     ($element:expr; $count:expr) => {{
-        let mut v = Vec::new();
-        let value = $element;
-        for _ in 0..$count {
-            v.push(value.clone());
-        }
+        // Do not evaluate the expression more than once
+        let count = $count;
+        // We can create the Vector with the right capacity and saving the efforts resize and move
+        // the data
+        // let mut v = Vec::new();
+        let mut v = Vec::with_capacity(count);
+
+        // There are several ways to put elements in a vector
+        // 1. Using a loop
+        // let value = $element;
+        // for _ in 0..$count {
+        //     v.push(value.clone());
+        // }
+        // 2. Use the Vector's `extend()` and `repeat()` methods
+        // v.extend(std::iter::repeat($element).take($count));
+        // 3. Alternatively, we can use the Vector's `resize()` method, which is more efficient as
+        //    it does not need to do bounds checking.
+        v.resize(count, $element);
         v
     }};
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! count {
+    // Counts the var args provided, without consuming the elements.  The elements are converted
+    // into units (zero size) and captured into an array.  Then we get the length of the array.
+    // There seem to be more ways to do this, but this is quite a nice trick.
+    // The `@COUNT;` is a label
+    (@COUNT; $($element:expr),*) => {
+        <[()]>::len(&[$($crate::count!(@SUBST; $element)),*])
+    };
+
+    // Substitutes the elements with unit, that has zero size, so that these are not consumed.
+    // Using unit here served two purposes, 1. we don't use the expression and 2. no memory is used.
+    // The `@SUBST;` is a label
+    (@SUBST; $($_element:expr),*) => { () }
 }
 
 #[cfg(test)]
@@ -76,12 +108,12 @@ mod tests {
     }
 
     #[test]
-    fn fill_vector_with_many_elements() {
-        let v: Vec<u32> = my_vec![1; 42];
+    fn fill_vector_with_many_elements_of_the_same_value() {
+        let v: Vec<u32> = my_vec![7; 42];
         assert!(!v.is_empty());
         assert_eq!(v.len(), 42);
         for i in v {
-            assert_eq!(i, 1);
+            assert_eq!(i, 7);
         }
     }
 }

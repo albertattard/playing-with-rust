@@ -1,7 +1,9 @@
 # Crust of Rust: Declarative Macros
 
 Based
-on [Crust of Rust: Declarative Macros](https://www.youtube.com/watch?v=q6paRBbLgNw&list=PLqbS7AVVErFiWDOAVrPt7aYmnuuOLYvOa&index=2)
+on [Crust of Rust: Declarative Macros](https://www.youtube.com/watch?v=q6paRBbLgNw&list=PLqbS7AVVErFiWDOAVrPt7aYmnuuOLYvOa&index=2).
+More information about macros can be found in
+the [The Little Book of Rust Macros](https://danielkeep.github.io/tlborm/book/index.html).
 
 Install [cargo expand](https://github.com/dtolnay/cargo-expand).
 
