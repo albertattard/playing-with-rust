@@ -12,8 +12,16 @@ in the standard library or implemented inefficiently and not production ready.
 
 - [rustup](https://rustup.rs/)
 
+  Install
+
   ```shell
   $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  ```
+
+  Update
+
+  ```shell
+  $ rustup update
   ```
 
 - [cargo edit](https://github.com/killercup/cargo-edit)
@@ -36,6 +44,9 @@ in the standard library or implemented inefficiently and not production ready.
   ```
 
 ## Examples
+
+- Iterators
+    - [Crust of Rust: Iterators](iterators/README.md)
 
 - Lifetime
     - [Crust of Rust: Lifetime Annotations](str-split/README.md)
