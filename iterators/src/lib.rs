@@ -1,9 +1,29 @@
-pub fn flatten<I>(iter: I) -> Flatten<I>
+pub trait MyIteratorExt: Iterator {
+    fn custom_flatten(self) -> Flatten<Self>
+    where
+        Self: Sized,
+        Self::Item: IntoIterator;
+}
+
+impl<T> MyIteratorExt for T
 where
-    I: Iterator,
+    T: Iterator,
+{
+    fn custom_flatten(self) -> Flatten<Self>
+    where
+        Self: Sized,
+        Self::Item: IntoIterator,
+    {
+        flatten(self)
+    }
+}
+
+pub fn flatten<I>(iter: I) -> Flatten<I::IntoIter>
+where
+    I: IntoIterator,
     I::Item: IntoIterator,
 {
-    Flatten::new(iter)
+    Flatten::new(iter.into_iter())
 }
 
 pub struct Flatten<O>
@@ -12,7 +32,8 @@ where
     O::Item: IntoIterator,
 {
     outer: O,
-    inner: Option<<O::Item as IntoIterator>::IntoIter>,
+    next_inner: Option<<O::Item as IntoIterator>::IntoIter>,
+    back_inner: Option<<O::Item as IntoIterator>::IntoIter>,
 }
 
 impl<O> Flatten<O>
@@ -23,7 +44,8 @@ where
     fn new(iter: O) -> Self {
         Flatten {
             outer: iter,
-            inner: None,
+            next_inner: None,
+            back_inner: None,
         }
     }
 }
@@ -42,22 +64,62 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if let Some(ref mut inner_iter) = self.inner {
+            if let Some(ref mut inner_iter) = self.next_inner {
                 if let Some(item) = inner_iter.next() {
                     return Some(item);
                 }
-                self.inner = None;
+                self.next_inner = None;
             }
 
-            // Move to the next inner iterator
-            self.inner = Some(self.outer.next()?.into_iter());
+            if let Some(next_inner) = self.outer.next() {
+                // Move to the next inner iterator
+                self.next_inner = Some(next_inner.into_iter());
+            } else {
+                // This get a bit complicated because of the double ended iterator.  The outer
+                // iterator may be consuming items from both end.  Before we terminate, we need to
+                // check if the back inner iterator is empty as this may have be yielded by the
+                // outer but not yet exhausted.
+                return self.back_inner.as_mut()?.next();
+            }
+        }
+    }
+}
+
+impl<O> DoubleEndedIterator for Flatten<O>
+where
+    // DoubleEndedIterator implements Iterator
+    // O: Iterator + DoubleEndedIterator,
+    O: DoubleEndedIterator,
+    O::Item: IntoIterator,
+    <O::Item as IntoIterator>::IntoIter: DoubleEndedIterator,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(ref mut back_iter) = self.back_inner {
+                if let Some(item) = back_iter.next_back() {
+                    return Some(item);
+                }
+                self.back_inner = None;
+            }
+
+            // Move to the previous (`next_back()`) inner iterator
+            if let Some(back_inner) = self.outer.next_back() {
+                // Move to the previous back inner iterator
+                self.back_inner = Some(back_inner.into_iter());
+            } else {
+                // This get a bit complicated because of the double ended iterator.  The outer
+                // iterator may be consuming items from both end.  Before we terminate, we need to
+                // check if the next inner iterator is empty as this may have be yielded by the
+                // outer but not yet exhausted.
+                return self.next_inner.as_mut()?.next_back();
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::flatten;
+    use crate::{flatten, MyIteratorExt};
 
     #[test]
     fn flatten_an_empty_iterator() {
@@ -83,5 +145,68 @@ mod tests {
             flatten(vec![vec!["an item", "a second item"], vec![], vec!["an item"]].into_iter())
                 .count();
         assert_eq!(count, 3);
+    }
+
+    #[test]
+    fn flatten_and_reverse_iterator_with_multiple_vectors_containing_multiple_items() {
+        let reverse = flatten(vec![vec!["a", "b"], vec![], vec!["c"]].into_iter())
+            // The `rev()` method is available as we have implemented the `DoubleEndedIterator`
+            // trait for `Flatten`
+            .rev()
+            .collect::<Vec<_>>();
+        assert_eq!(reverse, vec!["c", "b", "a"]);
+    }
+
+    #[test]
+    fn consume_items_from_both_ends_starting_from_the_front() {
+        let mut iter = flatten(vec![vec!["a", "b"], vec![], vec!["c"]].into_iter());
+        assert_eq!(iter.next(), Some("a"));
+        assert_eq!(iter.next_back(), Some("c"));
+        assert_eq!(iter.next(), Some("b"));
+
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next_back(), None);
+    }
+
+    #[test]
+    fn consume_items_from_both_ends_starting_from_the_rear() {
+        let mut iter = flatten(vec![vec!["a", "b"], vec![], vec!["c"]].into_iter());
+        assert_eq!(iter.next_back(), Some("c"));
+        assert_eq!(iter.next(), Some("a"));
+        assert_eq!(iter.next_back(), Some("b"));
+
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next_back(), None);
+    }
+
+    #[test]
+    fn consume_items_only_from_the_front() {
+        let mut iter = flatten(vec![vec!["a", "b"], vec![], vec!["c"]].into_iter());
+        assert_eq!(iter.next(), Some("a"));
+        assert_eq!(iter.next(), Some("b"));
+        assert_eq!(iter.next(), Some("c"));
+
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next_back(), None);
+    }
+
+    #[test]
+    fn consume_items_only_from_the_rear() {
+        let mut iter = flatten(vec![vec!["a", "b"], vec![], vec!["c"]].into_iter());
+        assert_eq!(iter.next_back(), Some("c"));
+        assert_eq!(iter.next_back(), Some("b"));
+        assert_eq!(iter.next_back(), Some("a"));
+
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.next_back(), None);
+    }
+
+    #[test]
+    fn flatten_iterator_through_the_extension_function() {
+        let result = vec![vec!["a", "b"], vec![], vec!["c"]]
+            .into_iter()
+            .custom_flatten()
+            .collect::<Vec<_>>();
+        assert_eq!(result, vec!["a", "b", "c"]);
     }
 }
