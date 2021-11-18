@@ -63,4 +63,5 @@ in the standard library or implemented inefficiently and not production ready.
     - [A Singly Linked List in Rust](linked-list/README.md)
 
 - Traits
+    - [Operator Overloading](operator-overloading/README.md)
     - [Dynamic vs Static Dispatch in Rust](traits/README.md)
