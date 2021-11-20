@@ -45,6 +45,9 @@ in the standard library or implemented inefficiently and not production ready.
 
 ## Examples
 
+- Associated Constants
+    - [Fibonacci](fibonacci/README.md)
+
 - Iterators
     - [Crust of Rust: Iterators](iterators/README.md)
 
